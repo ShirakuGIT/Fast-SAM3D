@@ -30,3 +30,11 @@ Look-scene/
 # Temporary files
 *.tmp
 *.swp
+
+*.glb
+*.ply
+*.png
+output_scene_final/*
+output_scene/*
+output_scene_hq/*
+sam3_segmentation_results/*

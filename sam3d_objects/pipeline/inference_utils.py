@@ -410,27 +410,69 @@ def prune_sparse_structure(
     return torch.cat([out_batch, out_coords], dim=1)
 
 
-def calculate_adaptive_factor(hfer_2d, hfer_3d, high_thresh = 0.7,low_thresh = 0.5):
+# def calculate_adaptive_factor(hfer_2d, hfer_3d, high_thresh = 0.7,low_thresh = 0.5):
 
-    if hfer_2d == 0 or hfer_3d == 0:
-        print("⚠️ Warning: hfer_2d = 0 or hfer_3d = 0 !! Please check!")
-        factor = 1
-        combined_score = 1
-        return factor, combined_score
+#     #if hfer_2d == 0 or hfer_3d == 0:
+#     if (isinstance(hfer_2d, np.ndarray) and not np.any(hfer_2d)) or (isinstance(hfer_3d, np.ndarray) and not np.any(hfer_3d)):
+#         print("⚠️ Warning: hfer_2d = 0 or hfer_3d = 0 !! Please check!")
+#         factor = 1
+#         combined_score = 1
+#         return factor, combined_score
 
-    w_2d = 0.9
-    w_3d = 0.1
-    combined_score = (hfer_2d * w_2d) + (hfer_3d * w_3d)
+#     w_2d = 0.9
+#     w_3d = 0.1
+#     combined_score = (hfer_2d * w_2d) + (hfer_3d * w_3d)
 
-    if combined_score >= high_thresh :
-        factor = 1.25 
-    elif combined_score > low_thresh:
-        factor = 1.50
-    else:
-        factor = 2.00
+#     if combined_score >= high_thresh :
+#         factor = 1.25 
+#     elif combined_score > low_thresh:
+#         factor = 1.50
+#     else:
+#         factor = 2.00
 
         
-    return factor, combined_score
+#     return factor, combined_score
+
+def calculate_adaptive_factor(hfer_2d, hfer_3d, high_thresh=0.8, low_thresh=0.4):
+    """
+    Compute an adaptive factor based on alignment between 2D and 3D pointmaps.
+    Handles array inputs by reducing to scalar metrics.
+    """
+    # Ensure we have arrays
+    hfer_2d = np.asarray(hfer_2d, dtype=np.float32)
+    hfer_3d = np.asarray(hfer_3d, dtype=np.float32)
+
+    # Quick check for zero/empty inputs
+    if hfer_2d.size == 0 or hfer_3d.size == 0 or not np.any(hfer_2d) or not np.any(hfer_3d):
+        return 1.0, 0.0
+
+    # Flatten to 1D for metric calculation
+    vec2d = hfer_2d.ravel()
+    vec3d = hfer_3d.ravel()
+
+    # Compute scalar metrics
+    dot = np.dot(vec2d, vec3d)
+    norm_product = np.linalg.norm(vec2d) * np.linalg.norm(vec3d)
+    if norm_product == 0:
+        return 1.0, 0.0
+
+    cosine_sim = dot / norm_product
+
+    # Use mean squared correlation-like score as scalar threshold
+    combined_score = np.mean(vec2d * vec3d)   # scalar now
+
+    # Safe comparisons
+    if combined_score >= high_thresh:
+        factor = 1.5
+        score = float(cosine_sim)
+    elif combined_score <= low_thresh:
+        factor = 0.5
+        score = float(cosine_sim)
+    else:
+        factor = 1.0
+        score = float(cosine_sim)
+
+    return factor, score
 
 
 def downsample_with_feature_fusion(
