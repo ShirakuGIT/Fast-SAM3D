@@ -118,6 +118,14 @@ def main():
         save_visual_ply(output["gs"], os.path.join(obj_dir, f"object_{i}.ply"))
         output["glb"].export(os.path.join(obj_dir, f"object_{i}_canonical.glb"))
         print(f"   💾 Saved canonical PLY and GLB")
+        # Save pose parameters (scale, rotation, translation)
+        pose_data = {
+            "scale": output["scale"].cpu().numpy(),
+            "rotation": output["rotation"].cpu().numpy(),
+            "translation": output["translation"].cpu().numpy()
+        }
+        np.savez(os.path.join(obj_dir, f"object_{i}_pose.npz"), **pose_data)
+        print(f"   💾 Saved pose parameters to object_{i}_pose.npz")
 
                 # ===== Exact community transformation (NumPy version – robust to NaN) =====
         R_yup_to_zup = np.array([[-1, 0, 0], [0, 0, 1], [0, 1, 0]], dtype=np.float32)
